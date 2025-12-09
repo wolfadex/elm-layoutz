@@ -4,9 +4,6 @@ WRAP_HOME = "/tmp/wrap_review_0.5.0/wrap_home"
 WRAP_FEATURE_CACHE = 1
 _.path = ['{{config_root}}/node_modules/.bin']
 
-[alias]
-elm = "wrap"
-
 [tools]
 elm = "0.19"
 node = "24"
