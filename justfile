@@ -1,6 +1,8 @@
 example-build:
-    # nodemon --exec 'elm-esm make src/AnsiExample.elm --output=dist/example-elm-ansi.js' --watch ../src --watch src -e elm",
-    cd example && elm-esm make src/Counter.elm --output=dist/elm.js
+    cd example && \
+        wrap make src/Counter.elm --output=dist/elm.js && \
+        awk '{gsub(/(this)/, "(globalThis)")}1' ./dist/elm.js > ./dist/elm.tmp && \
+        mv ./dist/elm.tmp ./dist/elm.js
 
 example-run: example-build
     node example
