@@ -3,6 +3,5 @@
   "version": "1.0.0",
   "description": "",
   "author": "Wolfgang Schuster",
-  "type": "module",
   "main": "dist/main.js"
 }

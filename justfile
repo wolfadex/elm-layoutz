@@ -1,8 +1,8 @@
 example-build:
-    cd example && \
-        wrap make src/Counter.elm --output=dist/elm.js && \
-        awk '{gsub(/(this)/, "(globalThis)")}1' ./dist/elm.js > ./dist/elm.tmp && \
-        mv ./dist/elm.tmp ./dist/elm.js
+    cd example && wrap make src/Counter.elm src/Readme.elm --output=dist/elm.js
 
-example-run: example-build
-    node example
+example-run-counter: example-build
+    node example Counter
+
+example-run-readme: example-build
+    node example Readme

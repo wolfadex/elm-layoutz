@@ -1,7 +1,10 @@
-port module Counter exposing (main)
+module Counter exposing (main)
 
+import Ansi
+import Ansi.Cursor
 import Browser
 import Layoutz
+import Ports
 
 
 main : Program () Model Msg
@@ -22,18 +25,9 @@ init () =
     render ( { count = 0 }, Cmd.none )
 
 
-port stdin : (String -> msg) -> Sub msg
-
-
-port stdout : String -> Cmd msg
-
-
-port exit : Int -> Cmd msg
-
-
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    stdin
+    Ports.stdin
         (\input ->
             case input of
                 "+" ->
@@ -69,7 +63,7 @@ update msg model =
             ( model, Cmd.none )
 
         Quit ->
-            ( model, exit 0 )
+            ( model, Ports.exit 0 )
 
         Increment ->
             render ( { model | count = model.count + 1 }, Cmd.none )
@@ -93,7 +87,8 @@ render ( model, cmd ) =
                 ]
             ]
             |> Layoutz.render
-            |> stdout
+            |> (\rendered -> Ansi.Cursor.hide ++ Ansi.clearScreen ++ rendered)
+            |> Ports.stdout
         , cmd
         ]
     )

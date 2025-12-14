@@ -1,31 +1,59 @@
 module Layoutz exposing
     ( Element
+    , text, br
     , ol, ul
     , layout, section
-    , text, br
+    , table, keyValue
+    , Tree, tree, leaf, branch
+    , inlineBar
+    , box
+    , statusCard
+    , margin
+    , row, tightRow
+    , Border(..), withBorder
+    , Style(..), withStyle
+    , withColor
+    , wrap
+    , center, centerInWidth
+    , underline, underlineWith, underlineColored
     , render
     )
 
 {-|
 
 @docs Element
+@docs text, br
 @docs ol, ul
 @docs layout, section
-@docs text, br
+@docs table, keyValue
+@docs Tree, tree, leaf, branch
+@docs inlineBar
+@docs box
+@docs statusCard
+@docs margin
+@docs row, tightRow
+
+@docs Border, withBorder
+@docs Style, withStyle
+@docs withColor
+@docs wrap
+@docs center, centerInWidth
+@docs underline, underlineWith, underlineColored
+
 @docs render
 
 -}
 
-import Ansi
+import Ansi.Box
 import Ansi.Color
-import Ansi.Cursor
+import Ansi.Font
 import Ansi.String
 
 
 type Element
     = Text String
     | UnorderedList (List Element)
-    | OL (List Element)
+    | OrderedList (List Element)
     | AutoCenter Element
     | Centered String Int
     | Colored Ansi.Color.Color Element
@@ -36,6 +64,12 @@ type Element
     | LineBreak
     | Section { title : String, content : List Element, glyph : String, flankingChars : Int }
     | Layout (List Element)
+    | TreeElement Tree
+    | InlineBar String Float
+    | Margin String (List Element)
+    | Row (List Element) Bool
+    | KeyValue (List ( String, String ))
+    | Underlined String String (Maybe Ansi.Color.Color)
 
 
 type Border
@@ -91,18 +125,204 @@ ul =
 
 ol : List Element -> Element
 ol =
-    OL
+    OrderedList
+
+
+table : List String -> List (List Element) -> Element
+table headers rows =
+    Table headers rows BorderNormal
+
+
+type Tree
+    = Tree String (List Tree)
+
+
+tree : String -> List Tree -> Element
+tree name children =
+    TreeElement (Tree name children)
+
+
+leaf : String -> Tree
+leaf name =
+    Tree name []
+
+
+branch : String -> List Tree -> Tree
+branch name children =
+    Tree name children
+
+
+inlineBar : String -> Float -> Element
+inlineBar =
+    InlineBar
+
+
+box : String -> List Element -> Element
+box title elements =
+    Box title elements BorderNormal
+
+
+margin : String -> List Element -> Element
+margin prefix elements =
+    Margin prefix elements
+
+
+
+-- hr : Element
+-- hr =  (HorizontalRule "─" 50)
+
+
+row : List Element -> Element
+row elements =
+    Row elements False
+
+
+{-| Create horizontal row with no spacing between elements (for gradients, etc.)
+-}
+tightRow : List Element -> Element
+tightRow elements =
+    Row elements True
+
+
+keyValue : List ( String, String ) -> Element
+keyValue pairs =
+    KeyValue pairs
+
+
+statusCard : String -> String -> Element
+statusCard label content =
+    StatusCard label content BorderNormal
+
+
+
+--
+
+
+withBorder : Border -> Element -> Element
+withBorder border element =
+    case element of
+        Box title elements _ ->
+            Box title elements border
+
+        StatusCard label content _ ->
+            StatusCard label content border
+
+        Table headers rows _ ->
+            Table headers rows border
+
+        Colored color elem ->
+            Colored color (withBorder border elem)
+
+        Styled style elem ->
+            Styled style (withBorder border elem)
+
+        _ ->
+            element
+
+
+withColor : Ansi.Color.Color -> Element -> Element
+withColor =
+    Colored
+
+
+withStyle : Style -> Element -> Element
+withStyle =
+    Styled
+
+
+wrap : Int -> String -> Element
+wrap targetWidth content =
+    let
+        ws =
+            String.words content
+
+        wrappedLines =
+            wrapWords targetWidth ws
+
+        wrapWords : Int -> List String -> List String
+        wrapWords maxWidth wordsList =
+            case wordsList of
+                [] ->
+                    []
+
+                _ ->
+                    let
+                        ( line, rest ) =
+                            takeLine maxWidth wordsList
+                    in
+                    line :: wrapWords maxWidth rest
+
+        takeLine : Int -> List String -> ( String, List String )
+        takeLine maxWidth words =
+            case words of
+                [] ->
+                    ( "", [] )
+
+                firstWord :: restWords ->
+                    let
+                        go currentLen acc wds =
+                            case wds of
+                                [] ->
+                                    ( String.join " " (List.reverse acc), [] )
+
+                                nextWord :: remainingWords ->
+                                    if currentLen + 1 + visibleLength nextWord <= maxWidth then
+                                        go (currentLen + 1 + visibleLength nextWord) (nextWord :: acc) remainingWords
+
+                                    else
+                                        ( String.join " " (List.reverse acc), nextWord :: remainingWords )
+                    in
+                    if visibleLength firstWord > maxWidth then
+                        ( firstWord, restWords )
+                        -- Word too long, put it on its own line
+
+                    else
+                        go (visibleLength firstWord) [ firstWord ] restWords
+    in
+    layout (List.map text wrappedLines)
+
+
+underline : Element -> Element
+underline element =
+    Underlined (render element) "─" Nothing
+
+
+{-| Add underline with custom character
+-}
+underlineWith : String -> Element -> Element
+underlineWith char element =
+    Underlined (render element) char Nothing
+
+
+{-| Add colored underline with custom character and color
+Example usage:
+Layoutz.underlineColored "=" Ansi.Color.Red <| Layoutz.text "Error Section"
+Layoutz.underlineColored "~" Ansi.Color.Green <| Layoutz.text "Success"
+Layoutz.underlineColored "─" Ansi.Color.BrightCyan <| Layoutz.text "Info"
+-}
+underlineColored : String -> Ansi.Color.Color -> Element -> Element
+underlineColored char color element =
+    Underlined (render element) char (Just color)
+
+
+center : Element -> Element
+center element =
+    AutoCenter element
+
+
+{-| Center element within specified width
+-}
+centerInWidth : Int -> Element -> Element
+centerInWidth targetWidth element =
+    Centered (render element) targetWidth
+
+
+
+--
 
 
 render : Element -> String
 render element =
-    Ansi.Cursor.hide
-        ++ Ansi.clearScreen
-        ++ renderElement element
-
-
-renderElement : Element -> String
-renderElement element =
     case element of
         Text txt ->
             txt
@@ -138,7 +358,7 @@ renderElement element =
                         _ ->
                             let
                                 content =
-                                    renderElement item
+                                    render item
 
                                 contentLines =
                                     String.lines content
@@ -156,7 +376,7 @@ renderElement element =
                                             indent ++ bullet ++ " " ++ firstLine
 
                                         restIndent =
-                                            String.repeat (String.length indent + String.length bullet + 1) " "
+                                            String.repeat (visibleLength indent + visibleLength bullet + 1) " "
 
                                         restOutput =
                                             List.map (\r -> restIndent ++ r) restLines
@@ -165,23 +385,180 @@ renderElement element =
             in
             renderAtLevel 0 items
 
-        OL children ->
-            Debug.todo ""
+        OrderedList items ->
+            let
+                renderAtLevel startNum level itemList =
+                    let
+                        indent =
+                            String.repeat (level * 2) " "
+                    in
+                    String.join "\n" <| List.indexedMap (renderItem level indent) itemList
 
-        AutoCenter child ->
-            Debug.todo ""
+                renderItem level indent num item =
+                    case item of
+                        OrderedList nested ->
+                            renderAtLevel 1 (level + 1) nested
 
-        Centered content contextWidth ->
-            Debug.todo ""
+                        _ ->
+                            let
+                                numStr =
+                                    formatNumber level num ++ ". "
 
-        Colored color child ->
-            Debug.todo ""
+                                content =
+                                    render item
 
-        Styled style child ->
-            Debug.todo ""
+                                contentLines =
+                                    String.lines content
+                            in
+                            case contentLines of
+                                [] ->
+                                    indent ++ numStr
 
-        Box title children border ->
-            Debug.todo ""
+                                [ singleLine ] ->
+                                    indent ++ numStr ++ singleLine
+
+                                firstLine :: restLines ->
+                                    let
+                                        firstOutput =
+                                            indent ++ numStr ++ firstLine
+
+                                        restIndent =
+                                            String.repeat (visibleLength numStr) " "
+
+                                        restOutput =
+                                            List.map (\r -> (indent ++ restIndent) ++ r) restLines
+                                    in
+                                    String.join "\n" (firstOutput :: restOutput)
+
+                formatNumber : Int -> Int -> String
+                formatNumber lvl num =
+                    case modBy 3 lvl of
+                        0 ->
+                            -- 1, 2, 3
+                            String.fromInt num
+
+                        1 ->
+                            -- a, b, c
+                            String.fromChar (Char.fromCode (96 + num))
+
+                        _ ->
+                            -- i, ii, iii
+                            toRoman num
+
+                toRoman : Int -> String
+                toRoman i =
+                    case i of
+                        1 ->
+                            "i"
+
+                        2 ->
+                            "ii"
+
+                        3 ->
+                            "iii"
+
+                        4 ->
+                            "iv"
+
+                        5 ->
+                            "v"
+
+                        6 ->
+                            "vi"
+
+                        7 ->
+                            "vii"
+
+                        8 ->
+                            "viii"
+
+                        9 ->
+                            "ix"
+
+                        10 ->
+                            "x"
+
+                        n ->
+                            String.fromInt n
+            in
+            renderAtLevel 1 0 items
+
+        AutoCenter el ->
+            render el
+
+        Centered content targetWidth ->
+            String.join "\n" <| List.map (centerString targetWidth) (String.lines content)
+
+        Colored color el ->
+            mapLines (Ansi.Color.fontColor color) (render el)
+
+        Styled style el ->
+            mapLines (wrapStyle style) (render el)
+
+        Box title elements border ->
+            let
+                elementStrings =
+                    List.map render elements
+
+                content =
+                    String.join "\n" elementStrings
+
+                contentLines =
+                    if String.isEmpty content then
+                        [ "" ]
+
+                    else
+                        String.lines content
+
+                contentWidth =
+                    contentLines
+                        |> List.map visibleLength
+                        |> List.maximum
+                        |> Maybe.withDefault 0
+
+                titleWidth =
+                    if String.isEmpty title then
+                        0
+
+                    else
+                        visibleLength title + 2
+
+                innerWidth =
+                    max contentWidth titleWidth
+
+                totalWidth =
+                    innerWidth + 4
+
+                { topLeft, topRight, bottomLeft, bottomRight, top, left } =
+                    borderChars border
+
+                hChar =
+                    top
+
+                topBorder =
+                    if String.isEmpty title then
+                        topLeft ++ String.repeat (totalWidth - 2) hChar ++ topRight
+
+                    else
+                        let
+                            titlePadding =
+                                totalWidth - visibleLength title - 2
+
+                            leftPad =
+                                titlePadding // 2
+
+                            rightPad =
+                                titlePadding - leftPad
+                        in
+                        topLeft ++ String.repeat leftPad hChar ++ title ++ String.repeat rightPad hChar ++ topRight
+
+                bottomBorder =
+                    bottomLeft ++ String.repeat (totalWidth - 2) hChar ++ bottomRight
+
+                paddedContent =
+                    List.map (\line -> left ++ " " ++ padRight innerWidth line ++ " " ++ left) contentLines
+            in
+            String.join "\n" (topBorder :: paddedContent ++ [ bottomBorder ])
 
         StatusCard label content border ->
             Debug.todo ""
@@ -198,7 +575,7 @@ renderElement element =
                     String.repeat flankingChars glyph ++ " " ++ title ++ " " ++ String.repeat flankingChars glyph
 
                 body =
-                    renderElement (Layout content)
+                    render (Layout content)
             in
             header ++ "\n" ++ body
 
@@ -234,23 +611,215 @@ renderElement element =
                 renderWithContext contextWidth elem =
                     case elem of
                         AutoCenter el ->
-                            renderElement (Centered (renderElement el) contextWidth)
+                            render (Centered (render el) contextWidth)
 
                         _ ->
-                            renderElement elem
+                            render elem
             in
             String.join "\n" renderedElements
+
+        TreeElement tre ->
+            Debug.todo ""
+
+        InlineBar label progress ->
+            Debug.todo ""
+
+        Margin prefix elems ->
+            Debug.todo ""
+
+        Row elems tight ->
+            Debug.todo ""
+
+        KeyValue pairs ->
+            Debug.todo ""
+
+        Underlined content underlineChar maybeColor ->
+            Debug.todo ""
 
 
 
 -- INTERNAL
 
 
+{-| Helper: pad a string to a target width on the right (ANSI-aware)
+-}
+padRight : Int -> String -> String
+padRight targetWidth str =
+    str ++ String.repeat (max 0 (targetWidth - visibleLength str)) " "
+
+
+{-| Helper: pad a string to a target width on the left (ANSI-aware)
+-}
+padLeft : Int -> String -> String
+padLeft targetWidth str =
+    String.repeat (max 0 (targetWidth - visibleLength str)) " " ++ str
+
+
+borderChars :
+    Border
+    ->
+        { topLeft : String
+        , topRight : String
+        , bottomLeft : String
+        , bottomRight : String
+        , bottom : String
+        , top : String
+        , right : String
+        , left : String
+        , leftSplit : String
+        , rightSplit : String
+        , split : String
+        }
+borderChars border =
+    case border of
+        BorderNormal ->
+            { topLeft = "┌"
+            , topRight = "┐"
+            , bottomLeft = "└"
+            , bottomRight = "┘"
+            , bottom = "─"
+            , top = "─"
+            , right = "│"
+            , left = "│"
+            , leftSplit = "├"
+            , rightSplit = "┤"
+            , split = "┼"
+            }
+
+        BorderDouble ->
+            { topLeft = "╔"
+            , topRight = "╗"
+            , bottomLeft = "╚"
+            , bottomRight = "╝"
+            , bottom = "═"
+            , top = "═"
+            , right = "║"
+            , left = "║"
+            , leftSplit = "╠"
+            , rightSplit = "╣"
+            , split = "╬"
+            }
+
+        BorderThick ->
+            { topLeft = "┏"
+            , topRight = "┓"
+            , bottomLeft = "┗"
+            , bottomRight = "┛"
+            , bottom = "━"
+            , top = "━"
+            , right = "┃"
+            , left = "┃"
+            , leftSplit = "┣"
+            , rightSplit = "┫"
+            , split = "╋"
+            }
+
+        BorderRound ->
+            { topLeft = "╭"
+            , topRight = "╮"
+            , bottomLeft = "╰"
+            , bottomRight = "╯"
+            , bottom = "─"
+            , top = "─"
+            , right = "│"
+            , left = "│"
+            , leftSplit = "├"
+            , rightSplit = "┤"
+            , split = "┼"
+            }
+
+        BorderNone ->
+            { topLeft = " "
+            , topRight = " "
+            , bottomLeft = " "
+            , bottomRight = " "
+            , bottom = " "
+            , top = " "
+            , right = " "
+            , left = " "
+            , leftSplit = " "
+            , rightSplit = " "
+            , split = " "
+            }
+
+
+wrapStyle : Style -> String -> String
+wrapStyle style str =
+    case style of
+        StyleNoStyle ->
+            str
+
+        StyleBold ->
+            Ansi.Font.bold str
+
+        StyleDim ->
+            Ansi.Font.faint str
+
+        StyleItalic ->
+            Ansi.Font.italic str
+
+        StyleUnderline ->
+            Ansi.Font.underline str
+
+        StyleBlink ->
+            Ansi.Font.blink str
+
+        StyleReverse ->
+            Ansi.Font.italic str
+
+        StyleHidden ->
+            Ansi.Font.hide ++ str ++ Ansi.Font.show
+
+        StyleStrikethrough ->
+            Ansi.Font.strikeThrough str
+
+        StyleCombined styles ->
+            List.foldl wrapStyle str styles
+
+
+mapLines : (String -> String) -> String -> String
+mapLines f str =
+    let
+        ls =
+            String.lines str
+
+        hasTrailingNewline =
+            String.endsWith "\n" str
+    in
+    if hasTrailingNewline then
+        String.join "\n" (List.map f ls) ++ "\n"
+
+    else
+        String.join "\n" (List.map f ls)
+
+
+centerString : Int -> String -> String
+centerString targetWidth str =
+    let
+        len =
+            visibleLength str
+
+        totalPadding =
+            targetWidth - len
+
+        leftPad =
+            String.repeat (totalPadding // 2) " "
+
+        rightPad =
+            String.repeat (totalPadding - visibleLength leftPad) " "
+    in
+    if len >= targetWidth then
+        str
+
+    else
+        leftPad ++ str ++ rightPad
+
+
 width : Element -> Int
 width element =
     let
         rendered =
-            renderElement element
+            render element
 
         renderedLines =
             String.lines rendered
@@ -282,7 +851,7 @@ height : Element -> Int
 height element =
     let
         rendered =
-            renderElement element
+            render element
     in
     if String.isEmpty rendered then
         1
