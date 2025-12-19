@@ -33,8 +33,27 @@ t =
     Layoutz.withBorder Layoutz.BorderRound <|
         Layoutz.table [ "Name", "Role", "Status" ]
             [ [ Layoutz.text "Alice", Layoutz.text "Engineer", Layoutz.text "Online" ]
-            , [ Layoutz.text "Eve", Layoutz.text "QA", Layoutz.text "Away" ]
-            , [ Layoutz.ul [ Layoutz.text "Gegard", Layoutz.ul [ Layoutz.text "Mousasi", Layoutz.ul [ Layoutz.text "was a BAD man" ] ] ], Layoutz.text "Fighter", Layoutz.text "Nasty" ]
+
+            -- , [ Layoutz.text "Eve", Layoutz.text "QA", Layoutz.text "Away" ]
+            , [ Layoutz.ul
+                    [ Layoutz.text "Gegard"
+                    , Layoutz.ul
+                        [ Layoutz.text "Mousasi"
+                        , Layoutz.ul
+                            [ Layoutz.text "was a BAD man "
+                            , Layoutz.ul
+                                [ Layoutz.text "1"
+                                , Layoutz.ul
+                                    [ Layoutz.text "2"
+                                    , Layoutz.ul [ Layoutz.text "3" ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+              , Layoutz.text "Fighter"
+              , Layoutz.text "Nasty"
+              ]
             ]
 
 
@@ -84,19 +103,23 @@ d =
                                 in
                                 Layoutz.withColor (Ansi.Color.CustomTrueColor { red = r, green = g, blue = b }) <| Layoutz.text "█"
                             )
-                            (0 :: List.range 12 255)
+                            (List.range 0 255 |> List.filter (\n -> modBy 12 n == 0))
                     ]
                 ]
             ]
         , Layoutz.row
             [ Layoutz.layout
-                [ Layoutz.withColor Ansi.Color.BrightMagenta <|
-                    Layoutz.withStyle (Layoutz.StyleCombined [ Layoutz.StyleReverse, Layoutz.StyleBold ]) <|
+                [ Layoutz.withBackgroundColor Ansi.Color.BrightMagenta <|
+                    Layoutz.withStyle Layoutz.StyleBold <|
                         Layoutz.box "Wrapped"
                             [ Layoutz.wrap 20 "Where there is a will ... Water x Necessaries" ]
-                , Layoutz.ol [ Layoutz.text "Arcole", Layoutz.text "Austerlitz", Layoutz.ol [ Layoutz.text "Iéna", Layoutz.ol [ Layoutz.text "Бородино" ] ] ]
+                , Layoutz.ol
+                    [ Layoutz.text "Arcole"
+                    , Layoutz.text "Austerlitz"
+                    , Layoutz.ol [ Layoutz.text "Iéna", Layoutz.ol [ Layoutz.text "Бородино" ] ]
+                    ]
                 ]
-            , Layoutz.margin "[Haskell!]"
+            , Layoutz.margin "[Elm!]"
                 [ Layoutz.withColor Ansi.Color.Green <|
                     Layoutz.box "Deploy Status"
                         [ Layoutz.inlineBar "Build" 1.0
@@ -112,6 +135,23 @@ d =
                         ]
                 ]
             ]
+        ]
+
+
+q =
+    Layoutz.table [ "N", "R", "S" ]
+        [ [ Layoutz.ul
+                [ Layoutz.text "1"
+                , Layoutz.ul
+                    [ Layoutz.text "2"
+                    , Layoutz.ul
+                        [ Layoutz.text "3"
+                        ]
+                    ]
+                ]
+          , Layoutz.text "B"
+          , Layoutz.text "C"
+          ]
         ]
 
 

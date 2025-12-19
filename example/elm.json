@@ -9,7 +9,7 @@
             "elm/browser": "1.0.2",
             "elm/core": "1.0.5",
             "elm/html": "1.0.1",
-            "wolfadex/elm-ansi": "3.0.0",
+            "wolfadex/elm-ansi": "3.0.1",
             "wolfadex/elm-layoutz": "1.0.0"
         },
         "indirect": {

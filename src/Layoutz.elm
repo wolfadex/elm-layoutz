@@ -12,7 +12,7 @@ module Layoutz exposing
     , row, tightRow
     , Border(..), withBorder
     , Style(..), withStyle
-    , withColor
+    , withColor, withBackgroundColor
     , wrap
     , center, centerInWidth
     , underline, underlineWith, underlineColored
@@ -35,7 +35,7 @@ module Layoutz exposing
 
 @docs Border, withBorder
 @docs Style, withStyle
-@docs withColor
+@docs withColor, withBackgroundColor
 @docs wrap
 @docs center, centerInWidth
 @docs underline, underlineWith, underlineColored
@@ -57,6 +57,7 @@ type Element
     | AutoCenter Element
     | Centered String Int
     | Colored Ansi.Color.Color Element
+    | ColoredBackground Ansi.Color.Color Element
     | Styled Style Element
     | Box String (List Element) Border
     | StatusCard String String Border
@@ -87,7 +88,6 @@ type Style
     | StyleItalic
     | StyleUnderline
     | StyleBlink
-    | StyleReverse
     | StyleHidden
     | StyleStrikethrough
     | StyleCombined (List Style)
@@ -213,6 +213,9 @@ withBorder border element =
         Colored color elem ->
             Colored color (withBorder border elem)
 
+        ColoredBackground color elem ->
+            ColoredBackground color (withBorder border elem)
+
         Styled style elem ->
             Styled style (withBorder border elem)
 
@@ -223,6 +226,11 @@ withBorder border element =
 withColor : Ansi.Color.Color -> Element -> Element
 withColor =
     Colored
+
+
+withBackgroundColor : Ansi.Color.Color -> Element -> Element
+withBackgroundColor =
+    ColoredBackground
 
 
 withStyle : Style -> Element -> Element
@@ -348,7 +356,9 @@ render element =
                         indent =
                             String.repeat (level * 2) " "
                     in
-                    String.join "\n" <| List.map (renderItem level indent currentBullet) itemList
+                    itemList
+                        |> List.map (renderItem level indent currentBullet)
+                        |> String.join "\n"
 
                 renderItem level indent bullet item =
                     case item of
@@ -387,7 +397,7 @@ render element =
 
         OrderedList items ->
             let
-                renderAtLevel startNum level itemList =
+                renderAtLevel level itemList =
                     let
                         indent =
                             String.repeat (level * 2) " "
@@ -397,12 +407,12 @@ render element =
                 renderItem level indent num item =
                     case item of
                         OrderedList nested ->
-                            renderAtLevel 1 (level + 1) nested
+                            renderAtLevel (level + 1) nested
 
                         _ ->
                             let
                                 numStr =
-                                    formatNumber level num ++ ". "
+                                    formatNumber level (num + 1) ++ ". "
 
                                 content =
                                     render item
@@ -481,7 +491,7 @@ render element =
                         n ->
                             String.fromInt n
             in
-            renderAtLevel 1 0 items
+            renderAtLevel 0 items
 
         AutoCenter el ->
             render el
@@ -491,6 +501,9 @@ render element =
 
         Colored color el ->
             mapLines (Ansi.Color.fontColor color) (render el)
+
+        ColoredBackground color el ->
+            mapLines (Ansi.Color.backgroundColor color) (render el)
 
         Styled style el ->
             mapLines (wrapStyle style) (render el)
@@ -561,10 +574,210 @@ render element =
             String.join "\n" (topBorder :: paddedContent ++ [ bottomBorder ])
 
         StatusCard label content border ->
-            Debug.todo ""
+            let
+                labelLines =
+                    String.lines label
 
-        Table labels children border ->
-            Debug.todo ""
+                contentLines =
+                    String.lines content
+
+                allLines =
+                    labelLines ++ contentLines
+
+                maxWidth =
+                    allLines
+                        |> List.map visibleLength
+                        |> List.maximum
+                        |> Maybe.withDefault 0
+
+                contentWidth =
+                    maxWidth + 2
+
+                { topLeft, topRight, bottomLeft, bottomRight, top, left } =
+                    borderChars border
+
+                hChar =
+                    top
+
+                topBorder =
+                    topLeft ++ String.repeat (contentWidth + 2) hChar ++ topRight
+
+                bottomBorder =
+                    bottomLeft ++ String.repeat (contentWidth + 2) hChar ++ bottomRight
+
+                createCardLine line =
+                    left ++ " " ++ padRight contentWidth line ++ " " ++ left
+            in
+            (topBorder :: List.map createCardLine allLines ++ [ bottomBorder ])
+                |> String.join "\n"
+
+        Table headers rows border ->
+            let
+                normalizeRow : Int -> List Element -> List Element
+                normalizeRow expectedLen rowData =
+                    let
+                        currentLen =
+                            List.length rowData
+                    in
+                    if currentLen >= expectedLen then
+                        List.take expectedLen rowData
+
+                    else
+                        rowData ++ List.repeat (expectedLen - currentLen) (text "")
+
+                calculateColumnWidths : List String -> List (List Element) -> List Int
+                calculateColumnWidths hdrs rws =
+                    let
+                        headerWidths =
+                            List.map visibleLength hdrs
+
+                        rowWidths =
+                            List.map
+                                (List.map
+                                    (render
+                                        >> String.lines
+                                        >> List.map
+                                            (\line ->
+                                                visibleLength (Debug.log "line" line)
+                                                    |> Debug.log "lineLen"
+                                            )
+                                        >> List.maximum
+                                        >> Maybe.withDefault 0
+                                    )
+                                )
+                                rws
+
+                        allWidths =
+                            headerWidths :: rowWidths
+                    in
+                    List.map (List.maximum >> Maybe.withDefault 0) (transpose allWidths)
+
+                renderTableRow : List Int -> String -> List Element -> List String
+                renderTableRow widths vChars rowData =
+                    let
+                        cellContents =
+                            List.map render rowData
+                                |> Debug.log "cellContents"
+
+                        cellLines =
+                            List.map String.lines cellContents
+                                |> Debug.log "cellLines"
+
+                        maxCellHeight =
+                            cellLines
+                                |> List.map List.length
+                                |> List.maximum
+                                |> Maybe.withDefault 1
+                                |> Debug.log "maxCellHeight"
+
+                        paddedCells =
+                            List.map2 (padCell maxCellHeight) widths cellLines
+                                |> Debug.log "paddedCells"
+
+                        tableRows =
+                            transpose paddedCells
+                                |> Debug.log "tableRows"
+                    in
+                    List.map
+                        (\rowCells ->
+                            vChars ++ " " ++ String.join (" " ++ vChars ++ " ") rowCells ++ " " ++ vChars
+                        )
+                        tableRows
+
+                padCell : Int -> Int -> List String -> List String
+                padCell cellHeight cellWidth cellLines =
+                    let
+                        paddedLines =
+                            cellLines ++ List.repeat (cellHeight - List.length cellLines) ""
+                    in
+                    List.map (padRight cellWidth) paddedLines
+
+                normalizedRows =
+                    rows
+                        |> List.map (normalizeRow (List.length headers))
+
+                columnWidths =
+                    calculateColumnWidths headers normalizedRows
+                        |> Debug.log "colWidths"
+
+                { topLeft, topRight, bottomLeft, bottomRight, top, left, leftSplit, rightSplit, split } =
+                    borderChars border
+
+                hChar =
+                    top
+
+                -- Fixed border construction with proper connectors
+                topConnector =
+                    case border of
+                        BorderRound ->
+                            "┬"
+
+                        BorderNormal ->
+                            "┬"
+
+                        BorderDouble ->
+                            "╦"
+
+                        BorderThick ->
+                            "┳"
+
+                        BorderNone ->
+                            " "
+
+                topParts =
+                    List.map (\w -> String.repeat w hChar) columnWidths
+
+                topBorder =
+                    topLeft ++ hChar ++ String.concat (List.intersperse (hChar ++ topConnector ++ hChar) topParts) ++ hChar ++ topRight
+
+                -- Create proper separator with tee connectors
+                separatorParts =
+                    List.map (\w -> String.repeat w hChar) columnWidths
+                        |> Debug.log "sepParts"
+
+                separatorBorder =
+                    leftSplit ++ hChar ++ String.concat (List.intersperse (hChar ++ split ++ hChar) separatorParts) ++ hChar ++ rightSplit
+
+                -- Create proper bottom border with bottom connectors
+                bottomConnector =
+                    case border of
+                        BorderRound ->
+                            "┴"
+
+                        -- Special case for round borders
+                        BorderNormal ->
+                            "┴"
+
+                        BorderDouble ->
+                            "╩"
+
+                        BorderThick ->
+                            "┻"
+
+                        BorderNone ->
+                            " "
+
+                bottomParts =
+                    List.map (\w -> String.repeat w hChar) columnWidths
+
+                bottomBorder =
+                    bottomLeft ++ hChar ++ String.concat (List.intersperse (hChar ++ bottomConnector ++ hChar) bottomParts) ++ hChar ++ bottomRight
+
+                -- Create header row
+                headerCells =
+                    List.map2 padRight columnWidths headers
+
+                headerRow =
+                    left ++ " " ++ String.join (" " ++ left ++ " ") headerCells ++ " " ++ left
+
+                -- Create data rows
+                dataRows =
+                    normalizedRows
+                        |> Debug.log "normRows"
+                        |> List.concatMap (renderTableRow columnWidths left)
+                        |> Debug.log "dataRows"
+            in
+            String.join "\n" ([ topBorder, headerRow, separatorBorder ] ++ dataRows ++ [ bottomBorder ])
 
         LineBreak ->
             "\n"
@@ -618,23 +831,206 @@ render element =
             in
             String.join "\n" renderedElements
 
-        TreeElement tre ->
-            Debug.todo ""
+        TreeElement treeData ->
+            let
+                renderTree (Tree name children) prefix isLast parentPrefixes =
+                    let
+                        nodeLine =
+                            if List.isEmpty parentPrefixes then
+                                name
+
+                            else
+                                prefix
+                                    ++ (if isLast then
+                                            "└── "
+
+                                        else
+                                            "├── "
+                                       )
+                                    ++ name
+
+                        childPrefix =
+                            if List.isEmpty parentPrefixes then
+                                ""
+
+                            else
+                                prefix
+                                    ++ (if isLast then
+                                            "    "
+
+                                        else
+                                            "│   "
+                                       )
+
+                        childLines : List String
+                        childLines =
+                            let
+                                lastIdx =
+                                    List.length children - 1
+                            in
+                            List.foldl
+                                (\child ( res, idx ) ->
+                                    ( renderTree child childPrefix (idx == lastIdx) (parentPrefixes ++ [ not isLast ]) :: res
+                                    , idx + 1
+                                    )
+                                )
+                                ( [], 0 )
+                                children
+                                |> Tuple.first
+                                |> List.reverse
+                    in
+                    if List.isEmpty children then
+                        nodeLine
+
+                    else
+                        nodeLine ++ "\n" ++ String.join "\n" childLines
+            in
+            renderTree treeData "" True []
 
         InlineBar label progress ->
-            Debug.todo ""
+            let
+                clampedProgress =
+                    max 0.0 (min 1.0 progress)
+
+                barWidth =
+                    20
+
+                filledSegments =
+                    floor (clampedProgress * barWidth)
+
+                emptySegments =
+                    barWidth - filledSegments
+
+                bar =
+                    String.repeat filledSegments "█" ++ String.repeat emptySegments "─"
+
+                percentage =
+                    floor (clampedProgress * 100)
+            in
+            label ++ " [" ++ bar ++ "] " ++ String.fromInt percentage ++ "%"
 
         Margin prefix elems ->
-            Debug.todo ""
+            let
+                content =
+                    case elems of
+                        [ single ] ->
+                            render single
+
+                        _ ->
+                            render (Layout elems)
+            in
+            content
+                |> String.lines
+                |> List.map (\line -> (prefix ++ " ") ++ line)
+                |> String.join "\n"
 
         Row elems tight ->
-            Debug.todo ""
+            case elems of
+                [] ->
+                    ""
+
+                _ ->
+                    let
+                        separator =
+                            if tight then
+                                ""
+
+                            else
+                                " "
+
+                        elementStrings =
+                            List.map render elems
+
+                        elementLines =
+                            List.map String.lines elementStrings
+
+                        maxHeight =
+                            List.map List.length elementLines
+                                |> List.maximum
+                                |> Maybe.withDefault 0
+
+                        elementWidths =
+                            List.map
+                                (Maybe.withDefault 0 << List.maximum << List.map visibleLength)
+                                elementLines
+
+                        paddedElements =
+                            List.map2 padElement elementWidths elementLines
+
+                        padElement : Int -> List String -> List String
+                        padElement cellWidth linesList =
+                            let
+                                currentLines =
+                                    linesList ++ List.repeat (maxHeight - List.length linesList) ""
+                            in
+                            List.map (padRight cellWidth) currentLines
+                    in
+                    transpose paddedElements
+                        |> List.map (String.join separator)
+                        |> String.join "\n"
 
         KeyValue pairs ->
-            Debug.todo ""
+            if List.isEmpty pairs then
+                ""
+
+            else
+                let
+                    maxKeyLength =
+                        pairs
+                            |> List.map (Tuple.first >> visibleLength)
+                            |> List.maximum
+                            |> Maybe.withDefault 0
+
+                    alignmentPosition =
+                        maxKeyLength + 2
+
+                    renderPair alignPos ( key, value ) =
+                        let
+                            keyWithColon =
+                                key ++ ":"
+
+                            spacesNeeded =
+                                alignPos - visibleLength keyWithColon
+
+                            padding =
+                                String.repeat (max 1 spacesNeeded) " "
+                        in
+                        keyWithColon ++ padding ++ value
+                in
+                pairs
+                    |> List.map (renderPair alignmentPosition)
+                    |> String.join "\n"
 
         Underlined content underlineChar maybeColor ->
-            Debug.todo ""
+            let
+                contentLines =
+                    String.lines content
+
+                maxWidth =
+                    if List.isEmpty contentLines then
+                        0
+
+                    else
+                        contentLines
+                            |> List.map visibleLength
+                            |> List.maximum
+                            |> Maybe.withDefault 0
+
+                repeats =
+                    maxWidth // String.length underlineChar
+
+                remainder =
+                    maxWidth |> modBy (String.length underlineChar)
+
+                underlinePart =
+                    String.repeat repeats underlineChar ++ String.left remainder underlineChar
+
+                coloredUnderline =
+                    maybeColor
+                        |> Maybe.map (\color -> Ansi.Color.fontColor color underlinePart)
+                        |> Maybe.withDefault underlinePart
+            in
+            content ++ "\n" ++ coloredUnderline
 
 
 
@@ -764,9 +1160,6 @@ wrapStyle style str =
         StyleBlink ->
             Ansi.Font.blink str
 
-        StyleReverse ->
-            Ansi.Font.italic str
-
         StyleHidden ->
             Ansi.Font.hide ++ str ++ Ansi.Font.show
 
@@ -858,3 +1251,18 @@ height element =
 
     else
         List.length (String.lines rendered)
+
+
+transpose : List (List a) -> List (List a)
+transpose listOfLists =
+    List.foldr (List.map2 (::)) (List.repeat (rowsLength listOfLists) []) listOfLists
+
+
+rowsLength : List (List a) -> Int
+rowsLength listOfLists =
+    case listOfLists of
+        [] ->
+            0
+
+        x :: _ ->
+            List.length x
