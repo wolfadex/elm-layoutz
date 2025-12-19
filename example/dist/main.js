@@ -24,6 +24,9 @@ switch (process.argv[2]) {
   case "Spinner":
     app = Elm.Spinner.init();
     break;
+  case "SimpleGame":
+    app = Elm.SimpleGame.init();
+    break;
 }
 
 app.ports.stdout.subscribe(function (data) {
