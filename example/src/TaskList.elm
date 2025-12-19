@@ -1,4 +1,4 @@
-port module TaskList exposing (main)
+module TaskList exposing (main)
 
 {-| Interactive Task List Demo - Navigate, complete, and add tasks with progress tracking
 
@@ -80,7 +80,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ if model.isLoading then
-            onTick (\_ -> AdvanceProgress)
+            Ports.onTick (\_ -> AdvanceProgress)
 
           else
             Sub.none
@@ -181,9 +181,6 @@ type Msg
     | DeleteChar
     | ConfirmTask
     | CancelAdd
-
-
-port onTick : (Float -> msg) -> Sub msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

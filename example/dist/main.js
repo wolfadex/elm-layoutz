@@ -21,6 +21,9 @@ switch (process.argv[2]) {
   case "TaskList":
     app = Elm.TaskList.init();
     break;
+  case "Spinner":
+    app = Elm.Spinner.init();
+    break;
 }
 
 app.ports.stdout.subscribe(function (data) {
@@ -39,4 +42,6 @@ function tick(time) {
   requestAnimationFrame(tick);
 }
 
-requestAnimationFrame(tick);
+if (app.ports.onTick) {
+  requestAnimationFrame(tick);
+}
