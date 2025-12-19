@@ -10,6 +10,7 @@ module Layoutz exposing
     , statusCard
     , margin
     , row, tightRow
+    , SpinnerStyle(..), spinner
     , Border(..), withBorder
     , Style(..), withStyle
     , withColor, withBackgroundColor
@@ -32,6 +33,7 @@ module Layoutz exposing
 @docs statusCard
 @docs margin
 @docs row, tightRow
+@docs SpinnerStyle, spinner
 
 @docs Border, withBorder
 @docs Style, withStyle
@@ -71,6 +73,7 @@ type Element
     | Row (List Element) Bool
     | KeyValue (List ( String, String ))
     | Underlined String String (Maybe Ansi.Color.Color)
+    | Spinner String Int SpinnerStyle
 
 
 type Border
@@ -1031,6 +1034,55 @@ render element =
                         |> Maybe.withDefault underlinePart
             in
             content ++ "\n" ++ coloredUnderline
+
+        Spinner label frame style ->
+            let
+                frames =
+                    spinnerFrames style
+
+                spinChar =
+                    frames
+                        |> List.drop (frame |> modBy (List.length frames))
+                        |> List.head
+                        |> Maybe.withDefault ""
+            in
+            if String.isEmpty label then
+                spinChar
+
+            else
+                spinChar ++ " " ++ label
+
+
+{-| Spinner style with animation frames
+-}
+type SpinnerStyle
+    = SpinnerDots
+    | SpinnerLine
+    | SpinnerClock
+    | SpinnerBounce
+
+
+{-| Get animation frames for a spinner style
+-}
+spinnerFrames : SpinnerStyle -> List String
+spinnerFrames style =
+    case style of
+        SpinnerDots ->
+            [ "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" ]
+
+        SpinnerLine ->
+            [ "|", "/", "-", "\\" ]
+
+        SpinnerClock ->
+            [ "🕐", "🕑", "🕒", "🕓", "🕔", "🕕", "🕖", "🕗", "🕘", "🕙", "🕚", "🕛" ]
+
+        SpinnerBounce ->
+            [ "⠁", "⠂", "⠄", "⠂" ]
+
+
+spinner : String -> Int -> SpinnerStyle -> Element
+spinner =
+    Spinner
 
 
 
