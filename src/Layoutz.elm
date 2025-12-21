@@ -714,7 +714,7 @@ render element =
                         headerWidths =
                             List.map visibleLength hdrs
 
-                        rowWidths : List Int
+                        rowWidths : List (List Int)
                         rowWidths =
                             List.map
                                 (List.map
@@ -730,7 +730,7 @@ render element =
                                 )
                                 rws
 
-                        allWidths : List Int
+                        allWidths : List (List Int)
                         allWidths =
                             headerWidths :: rowWidths
                     in
@@ -754,11 +754,11 @@ render element =
                                 |> List.maximum
                                 |> Maybe.withDefault 1
 
-                        paddedCells : List String
+                        paddedCells : List (List String)
                         paddedCells =
                             List.map2 (padCell maxCellHeight) widths cellLines
 
-                        tableRows : List String
+                        tableRows : List (List String)
                         tableRows =
                             transpose paddedCells
                     in
@@ -777,7 +777,7 @@ render element =
                     in
                     List.map (padRight cellWidth) paddedLines
 
-                normalizedRows : List Element
+                normalizedRows : List (List Element)
                 normalizedRows =
                     rows
                         |> List.map (normalizeRow (List.length headers))
@@ -935,7 +935,7 @@ render element =
 
         TreeElement treeData ->
             let
-                renderTree : Tree -> String -> Bool -> List String -> String
+                renderTree : Tree -> String -> Bool -> List Bool -> String
                 renderTree (Tree name children) prefix isLast parentPrefixes =
                     let
                         nodeLine : String
@@ -1002,7 +1002,7 @@ render element =
                 clampedProgress =
                     max 0.0 (min 1.0 progress)
 
-                barWidth : Float
+                barWidth : number
                 barWidth =
                     20
 
@@ -1075,7 +1075,7 @@ render element =
                                 (Maybe.withDefault 0 << List.maximum << List.map visibleLength)
                                 elementLines
 
-                        paddedElements : List String
+                        paddedElements : List (List String)
                         paddedElements =
                             List.map2 padElement elementWidths elementLines
 
