@@ -11,11 +11,8 @@ Build declarative and composable sections, trees, tables, dashboards, and intera
 - ANSI colors and wide character support
 - Easily create new primitives (no component-library limitations)
 
-<p align="center">
-<img src="https://raw.githubusercontent.com/mattlianje/layoutz/refs/heads/master/pix/layoutzapp-demo.gif" height="350"><img src="https://raw.githubusercontent.com/mattlianje/layoutz/refs/heads/master/pix/game-demo.gif" height="350">
-<br>
-<sub><a href="TaskListDemo.hs">TaskListDemo.hs</a> • <a href="SimpleGame.hs">SimpleGame.hs</a></sub>
-</p>
+![TaskList]([output-4.webp](https://raw.githubusercontent.com/wolfadex/elm-layoutz/refs/heads/main/assets/TaskList.webp))
+![SimpleGame]([output-4.webp](https://raw.githubusercontent.com/wolfadex/elm-layoutz/refs/heads/main/assets/SimpleGame.webp))
 
 ## Table of Contents
 - [Quickstart](#quickstart)
@@ -68,10 +65,7 @@ demo =
 render demo
 ```
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/mattlianje/layoutz/refs/heads/master/layoutz-hs/pix/intro-demo.png" width="700">
-</p>
-
+![Readme]([output-4.webp](https://raw.githubusercontent.com/wolfadex/elm-layoutz/refs/heads/main/assets/Readme.png))
 
 **(2/2) Interactive apps** - Build Elm-style TUI's:
 
@@ -116,9 +110,6 @@ render ( model, cmd ) =
         ]
     )
 ```
-<p align="center">
-  <img src="https://raw.githubusercontent.com/mattlianje/layoutz/refs/heads/master/pix/counter-demo.gif" width="500">
-</p>
 
 ## Core concepts
 - Every piece of content is an `Element`
@@ -570,9 +561,6 @@ layout[
   margin "[INFO]" [withColor Ansi.Color.Cyan <| text "The quick brown fox..."]
 ]
 ```
-<p align="center">
-  <img src="https://raw.githubusercontent.com/mattlianje/layoutz/refs/heads/master/layoutz-hs/pix/layoutz-color-2.png" width="700">
-</p>
 
 ## Styles (ANSI Support)
 
@@ -585,9 +573,6 @@ layout[
   withBackgroundColor Ansi.Color.White <| withStyle StyleItalic <| text "The quick brown fox..."
 ]
 ```
-<p align="center">
-  <img src="https://raw.githubusercontent.com/mattlianje/layoutz/refs/heads/master/layoutz-hs/pix/layoutz-styles-1.png" width="700">
-</p>
 
 **Styles:**
 - `StyleBold` `StyleDim` `StyleItalic` `StyleUnderline`
@@ -599,9 +584,6 @@ layout[
   withStyle (StyleCombined [StyleBold, StyleItalic, StyleUnderline]) <| text "The quick brown fox..."
 ]
 ```
-<p align="center">
-  <img src="https://raw.githubusercontent.com/mattlianje/layoutz/refs/heads/master/layoutz-hs/pix/layoutz-styles-2.png" width="700">
-</p>
 
 You can also combine colors and styles:
 
