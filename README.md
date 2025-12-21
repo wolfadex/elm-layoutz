@@ -11,8 +11,8 @@ Build declarative and composable sections, trees, tables, dashboards, and intera
 - ANSI colors and wide character support
 - Easily create new primitives (no component-library limitations)
 
-![TaskList]([output-4.webp](https://raw.githubusercontent.com/wolfadex/elm-layoutz/refs/heads/main/assets/TaskList.webp))
-![SimpleGame]([output-4.webp](https://raw.githubusercontent.com/wolfadex/elm-layoutz/refs/heads/main/assets/SimpleGame.webp))
+![TaskList](https://raw.githubusercontent.com/wolfadex/elm-layoutz/refs/heads/main/assets/TaskList.webp)
+![SimpleGame](https://raw.githubusercontent.com/wolfadex/elm-layoutz/refs/heads/main/assets/SimpleGame.webp)
 
 ## Table of Contents
 - [Quickstart](#quickstart)
@@ -65,7 +65,7 @@ demo =
 render demo
 ```
 
-![Readme]([output-4.webp](https://raw.githubusercontent.com/wolfadex/elm-layoutz/refs/heads/main/assets/Readme.png))
+![Readme](https://raw.githubusercontent.com/wolfadex/elm-layoutz/refs/heads/main/assets/Readme.png)
 
 **(2/2) Interactive apps** - Build Elm-style TUI's:
 
