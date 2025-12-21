@@ -133,6 +133,18 @@ br =
     LineBreak
 
 
+hr : Element
+hr =
+    -- (HorizontalRule "─" 50)
+    Debug.odo ""
+
+
+vr : Element
+vr =
+    -- (HorizontalRule "─" 50)
+    Debug.odo ""
+
+
 {-| -}
 ul : List Element -> Element
 ul =
@@ -174,6 +186,11 @@ branch name children =
     Tree name children
 
 
+chart : List ( String, Int ) -> Element
+chart =
+    Debug.todo ""
+
+
 {-| -}
 inlineBar : String -> Float -> Element
 inlineBar =
@@ -192,9 +209,9 @@ margin prefix elements =
     Margin prefix elements
 
 
-
--- hr : Element
--- hr =  (HorizontalRule "─" 50)
+pad : Int -> Element -> Element
+pad =
+    Debug.todo ""
 
 
 {-| -}
@@ -361,6 +378,26 @@ center element =
 centerInWidth : Int -> Element -> Element
 centerInWidth targetWidth element =
     Centered (render element) targetWidth
+
+
+alignLeft : Int -> Element -> Element
+alignLeft =
+    Debug.todo ""
+
+
+alignRight : Int -> Element -> Element
+alignRight =
+    Debug.todo ""
+
+
+alignCenter : Int -> Element -> Element
+alignCenter =
+    Debug.todo ""
+
+
+justify : Int -> Element -> Element
+justify =
+    Debug.todo ""
 
 
 
@@ -952,8 +989,6 @@ render element =
                                             "├── "
                                        )
                                     ++ name
-
-
                     in
                     if List.isEmpty children then
                         nodeLine
@@ -975,7 +1010,7 @@ render element =
 
                                                     else
                                                         "│   "
-                                                )
+                                                   )
 
                                     lastIdx : Int
                                     lastIdx =
