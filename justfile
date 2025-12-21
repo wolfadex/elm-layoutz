@@ -15,3 +15,10 @@ example-run-spinner: example-build
 
 example-run-simplegame: example-build
     node example SimpleGame
+
+
+docs:
+    elm-doc-preview
+
+review-dev:
+    elm-review --watch --fix
