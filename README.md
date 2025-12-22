@@ -16,13 +16,10 @@ Build declarative and composable sections, trees, tables, dashboards, and intera
 
 ## Table of Contents
 - [Quickstart](#quickstart)
-- [Why layoutz?](#why-layoutz)
 - [Core Concepts](#core-concepts)
 - [Elements](#elements)
 - [Border Styles](#border-styles)
-- [Colors](#colors-ansi-support)
-- [Styles](#styles-ansi-support)
-- [Custom Components](#custom-components)
+- [Styles](#styles)
 - [Interactive Apps](#interactive-apps)
 
 
@@ -562,7 +559,7 @@ layout[
 ]
 ```
 
-## Styles (ANSI Support)
+## Styles
 
 Add ANSI styles to any element:
 

@@ -3,7 +3,8 @@ module Layoutz exposing
     , Element
     , text
     , ol, ul
-    , layout, section
+    , layout
+    , section, sectionWith, sectionOfSizeWith
     , table, keyValue, chart
     , Tree, tree, leaf, branch
     , inlineBar
@@ -15,6 +16,7 @@ module Layoutz exposing
     , hr, hrWith, hrWithOfLength
     , vr, vrWith, vrWithOfLength
     , br, pad
+    , alignLeft, alignCenter, alignRight, justify
     , Border(..), withBorder
     , Style(..), withStyle
     , withColor, withBackgroundColor
@@ -33,7 +35,8 @@ module Layoutz exposing
 @docs Element
 @docs text
 @docs ol, ul
-@docs layout, section
+@docs layout
+@docs section, sectionWith, sectionOfSizeWith
 @docs table, keyValue, chart
 @docs Tree, tree, leaf, branch
 @docs inlineBar
@@ -45,6 +48,7 @@ module Layoutz exposing
 @docs hr, hrWith, hrWithOfLength
 @docs vr, vrWith, vrWithOfLength
 @docs br, pad
+@docs alignLeft, alignCenter, alignRight, justify
 
 
 # Styling
@@ -146,48 +150,84 @@ section title content =
 
 
 {-| -}
+sectionWith : String -> String -> List Element -> Element
+sectionWith glyph title content =
+    Section
+        { title = title
+        , content = content
+        , glyph = glyph
+        , flankingChars = 3
+        }
+
+
+{-| -}
+sectionOfSizeWith : String -> String -> Int -> List Element -> Element
+sectionOfSizeWith glyph title flanking content =
+    Section
+        { title = title
+        , content = content
+        , glyph = glyph
+        , flankingChars = flanking
+        }
+
+
+{-| -}
 br : Element
 br =
     LineBreak
 
 
+{-| Horizontal rule of -
+-}
 hr : Element
 hr =
     HorizontalRule "─" 50
 
 
+{-| Horizontal rule with the character of your choice
+-}
 hrWith : String -> Element
 hrWith char =
     HorizontalRule char 50
 
 
+{-| Horizontal rule with the character of your choice, of a length
+-}
 hrWithOfLength : String -> Int -> Element
 hrWithOfLength =
     HorizontalRule
 
 
+{-| Vertical rule of |
+-}
 vr : Element
 vr =
     VerticalRule "│" 10
 
 
+{-| Vertical rule with the character of your choice
+-}
 vrWith : String -> Element
 vrWith char =
     VerticalRule char 10
 
 
+{-| Vertical rule with the character of your choice, of a length
+-}
 vrWithOfLength : String -> Int -> Element
 vrWithOfLength =
     VerticalRule
 
 
-{-| -}
+{-| An unordered list
+-}
 ul : List Element -> Element
 ul =
     UnorderedList
 
 
-{-| -}
+{-| An ordered list
+-}
 ol : List Element -> Element
 ol =
     OrderedList
@@ -222,6 +262,8 @@ branch name children =
     Tree name children
 
 
+{-| A horizontal bar chart
+-}
 chart : List ( String, Float ) -> Element
 chart =
     Chart
@@ -245,6 +287,7 @@ margin prefix elements =
     Margin prefix elements
 
 
+{-| -}
 pad : Int -> Element -> Element
 pad padding element =
     Padded (render element) padding
@@ -1593,6 +1636,10 @@ centerString targetWidth str =
 -}
 justifyString : Int -> String -> String
 justifyString targetWidth str =
+    let
+        len =
+            String.length str
+    in
     if len >= targetWidth then
         str
 
@@ -1606,11 +1653,8 @@ justifyString targetWidth str =
 
         else
             let
-                len =
-                    String.length str
-
                 wordLengths =
-                    Lis.tsum (List.map List.length ws)
+                    List.sum (List.map String.length ws)
 
                 totalSpaces =
                     targetWidth - wordLengths
@@ -1653,31 +1697,11 @@ width element =
             |> Maybe.withDefault 0
 
 
-
--- | Calculate visible width of string (handles ANSI codes, emoji, CJK)
-
-
+{-| Calculate visible width of string (handles ANSI codes, emoji, CJK)
+-}
 visibleLength : String -> Int
 visibleLength =
     Ansi.String.width
-
-
-
--- Calculate element height (number of lines)
-
-
-height : Element -> Int
-height element =
-    let
-        rendered : String
-        rendered =
-            render element
-    in
-    if String.isEmpty rendered then
-        1
-
-    else
-        List.length (String.lines rendered)
 
 
 transpose : List (List a) -> List (List a)
