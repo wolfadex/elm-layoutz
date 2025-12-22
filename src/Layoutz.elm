@@ -1,10 +1,10 @@
 module Layoutz exposing
     ( render
     , Element
-    , text, br
+    , text
     , ol, ul
     , layout, section
-    , table, keyValue
+    , table, keyValue, chart
     , Tree, tree, leaf, branch
     , inlineBar
     , box
@@ -12,6 +12,9 @@ module Layoutz exposing
     , margin
     , row, tightRow
     , SpinnerStyle(..), spinner
+    , hr, hrWith, hrWithOfLength
+    , vr, vrWith, vrWithOfLength
+    , br, pad
     , Border(..), withBorder
     , Style(..), withStyle
     , withColor, withBackgroundColor
@@ -28,10 +31,10 @@ module Layoutz exposing
 # Elements
 
 @docs Element
-@docs text, br
+@docs text
 @docs ol, ul
 @docs layout, section
-@docs table, keyValue
+@docs table, keyValue, chart
 @docs Tree, tree, leaf, branch
 @docs inlineBar
 @docs box
@@ -39,6 +42,9 @@ module Layoutz exposing
 @docs margin
 @docs row, tightRow
 @docs SpinnerStyle, spinner
+@docs hr, hrWith, hrWithOfLength
+@docs vr, vrWith, vrWithOfLength
+@docs br, pad
 
 
 # Styling
@@ -70,6 +76,7 @@ type Element
     | Box String (List Element) Border
     | StatusCard String String Border
     | Table (List String) (List (List Element)) Border
+    | Chart (List ( String, Float ))
     | LineBreak
     | Section { title : String, content : List Element, glyph : String, flankingChars : Int }
     | Layout (List Element)
@@ -80,6 +87,17 @@ type Element
     | KeyValue (List ( String, String ))
     | Underlined String String (Maybe Ansi.Color.Color)
     | Spinner String Int SpinnerStyle
+    | HorizontalRule String Int
+    | VerticalRule String Int
+    | Padded String Int
+    | AlignedText String Int Alignment
+
+
+type Alignment
+    = AlignLeft
+    | AlignRight
+    | AlignCenter
+    | Justify
 
 
 {-| -}
@@ -135,14 +153,32 @@ br =
 
 hr : Element
 hr =
-    -- (HorizontalRule "─" 50)
-    Debug.odo ""
+    HorizontalRule "─" 50
+
+
+hrWith : String -> Element
+hrWith char =
+    HorizontalRule char 50
+
+
+hrWithOfLength : String -> Int -> Element
+hrWithOfLength =
+    HorizontalRule
 
 
 vr : Element
 vr =
-    -- (HorizontalRule "─" 50)
-    Debug.odo ""
+    VerticalRule "│" 10
+
+
+vrWith : String -> Element
+vrWith char =
+    VerticalRule char 10
+
+
+vrWithOfLength : String -> Int -> Element
+vrWithOfLength =
+    VerticalRule
 
 
 {-| -}
@@ -186,9 +222,9 @@ branch name children =
     Tree name children
 
 
-chart : List ( String, Int ) -> Element
+chart : List ( String, Float ) -> Element
 chart =
-    Debug.todo ""
+    Chart
 
 
 {-| -}
@@ -210,8 +246,8 @@ margin prefix elements =
 
 
 pad : Int -> Element -> Element
-pad =
-    Debug.todo ""
+pad padding element =
+    Padded (render element) padding
 
 
 {-| -}
@@ -380,24 +416,32 @@ centerInWidth targetWidth element =
     Centered (render element) targetWidth
 
 
-alignLeft : Int -> Element -> Element
-alignLeft =
-    Debug.todo ""
+{-| Align text to the left within specified width
+-}
+alignLeft : Int -> String -> Element
+alignLeft targetWidth content =
+    AlignedText content targetWidth AlignLeft
 
 
-alignRight : Int -> Element -> Element
-alignRight =
-    Debug.todo ""
+{-| Align text to the right within specified width
+-}
+alignRight : Int -> String -> Element
+alignRight targetWidth content =
+    AlignedText content targetWidth AlignRight
 
 
-alignCenter : Int -> Element -> Element
-alignCenter =
-    Debug.todo ""
+{-| Align text to the center within specified width
+-}
+alignCenter : Int -> String -> Element
+alignCenter targetWidth content =
+    AlignedText content targetWidth AlignCenter
 
 
-justify : Int -> Element -> Element
-justify =
-    Debug.todo ""
+{-| Justify text (spread words evenly to fill width)
+-}
+justify : Int -> String -> Element
+justify targetWidth content =
+    AlignedText content targetWidth Justify
 
 
 
@@ -1221,6 +1265,113 @@ render element =
             else
                 spinChar ++ " " ++ label
 
+        HorizontalRule char ruleWidth ->
+            String.repeat ruleWidth char
+
+        VerticalRule char ruleHeight ->
+            String.join "\n" (List.repeat ruleHeight char)
+
+        Chart dataPoints ->
+            if List.isEmpty dataPoints then
+                "No data"
+
+            else
+                let
+                    maxValue =
+                        dataPoints
+                            |> List.map Tuple.second
+                            |> List.maximum
+                            |> Maybe.withDefault 0
+
+                    maxLabelWidth =
+                        [ 15
+                        , List.maximum
+                            (List.map (Tuple.first >> String.length) dataPoints)
+                            |> Maybe.withDefault 0
+                        ]
+                            |> List.minimum
+                            |> Maybe.withDefault 15
+
+                    chartWidth =
+                        40
+
+                    renderBar : ( String, Float ) -> String
+                    renderBar ( label, value ) =
+                        let
+                            truncatedLabel =
+                                if String.length label > maxLabelWidth then
+                                    String.left (maxLabelWidth - 3) label ++ "..."
+
+                                else
+                                    label
+
+                            paddedLabel =
+                                padRight maxLabelWidth truncatedLabel
+
+                            percentage =
+                                value / maxValue
+
+                            barLength =
+                                floor (percentage * chartWidth)
+
+                            bar =
+                                String.repeat barLength "█" ++ String.repeat (chartWidth - barLength) "─"
+
+                            valueStr =
+                                if value == toFloat (round value) then
+                                    String.fromInt (round value)
+
+                                else
+                                    String.fromFloat value
+                        in
+                        paddedLabel ++ " │" ++ bar ++ "│ " ++ valueStr
+                in
+                String.join "\n" (List.map renderBar dataPoints)
+
+        Padded content padding ->
+            let
+                contentLines =
+                    String.lines content
+
+                maxWidth =
+                    List.maximum (List.map String.length contentLines)
+                        |> Maybe.withDefault 0
+
+                horizontalPad =
+                    String.repeat padding " "
+
+                totalWidth =
+                    maxWidth + padding * 2
+
+                verticalPad =
+                    String.repeat totalWidth " "
+
+                paddedLines =
+                    List.map (\line -> horizontalPad ++ padRight maxWidth line ++ horizontalPad) contentLines
+
+                verticalLines =
+                    List.repeat padding verticalPad
+            in
+            String.join "\n" (verticalLines ++ paddedLines ++ verticalLines)
+
+        AlignedText content targetWidth alignment ->
+            let
+                alignFn =
+                    case alignment of
+                        AlignLeft ->
+                            padRight targetWidth
+
+                        AlignRight ->
+                            padLeft targetWidth
+
+                        AlignCenter ->
+                            centerString targetWidth
+
+                        Justify ->
+                            justifyString targetWidth
+            in
+            String.join "\n" <| List.map alignFn (String.lines content)
+
 
 {-| Spinner style with animation frames
 -}
@@ -1436,6 +1587,49 @@ centerString targetWidth str =
                 String.repeat (totalPadding - visibleLength leftPad) " "
         in
         leftPad ++ str ++ rightPad
+
+
+{-| Helper: justify text (spread words evenly to fill width)
+-}
+justifyString : Int -> String -> String
+justifyString targetWidth str =
+    if len >= targetWidth then
+        str
+
+    else
+        let
+            ws =
+                String.words str
+        in
+        if List.length ws <= 1 then
+            str
+
+        else
+            let
+                len =
+                    String.length str
+
+                wordLengths =
+                    Lis.tsum (List.map List.length ws)
+
+                totalSpaces =
+                    targetWidth - wordLengths
+
+                gaps =
+                    List.length ws - 1
+
+                baseSpaces =
+                    totalSpaces // gaps
+
+                extraSpaces =
+                    totalSpaces |> modBy gaps
+
+                spaces =
+                    List.repeat extraSpaces (String.repeat (baseSpaces + 1) " ")
+                        ++ List.repeat (gaps - extraSpaces) (String.repeat baseSpaces " ")
+                        ++ [ "" ]
+            in
+            String.concat <| List.map2 (++) ws spaces
 
 
 width : Element -> Int

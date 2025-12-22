@@ -135,6 +135,15 @@ d =
                         ]
                 ]
             ]
+        , Layoutz.hrWith "~"
+        , Layoutz.row
+            [ Layoutz.vrWith "#"
+            , Layoutz.chart
+                [ ( "Three", 3 )
+                , ( "Almost there", 97.2 )
+                , ( "Something half way", 48.7 )
+                ]
+            ]
         ]
 
 

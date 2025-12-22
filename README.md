@@ -591,44 +591,6 @@ You can also combine colors and styles:
 withColor Ansi.Color.BrightYellow <| withStyle (StyleCombined [StyleBold, StyleItalic]) <| text "The quick brown fox..."
 ```
 
-## Custom Components
-
-Create your own components by implementing the `Element` typeclass
-
-```elm
-import Layoutz
-
--- instance Element Square where
---   renderElement (Square size) 
---     | size < 2 = ""
---     | otherwise = intercalate "\n" (top : middle ++ [bottom])
---     where
---       w = size * 2 - 2
---       top = "┌" ++ replicate w '─' ++ "┐"
---       middle = replicate (size - 2) ("│" ++ replicate w ' ' ++ "│")
---       bottom = "└" ++ replicate w '─' ++ "┘"
-
--- Helper to avoid wrapping with L
-square : Int -> Layoutz.Element
-square n = Layoutz.custom (Debug.todo "")
-
--- Use it like any other element
-putStrLn <| render <| row
-  [ square 3
-  , square 5
-  , square 7
-  ]
-```
-```
-┌────┐ ┌────────┐ ┌────────────┐
-│    │ │        │ │            │
-└────┘ │        │ │            │
-       │        │ │            │
-       └────────┘ │            │
-                  │            │
-                  └────────────┘
-```
-
 ## Interactive Apps
 
 Build **terminal applications** with the example TUI runtime.
